@@ -1,19 +1,41 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
+#include <string.h>
 #include "variants/fieldfill.c"
 #include "constants.h"
+#include <sys/ioctl.h>
+#include <unistd.h>
 
-#define TILE struct Tile
+#ifndef __linux
 
-struct Tile
+#include <conio.h>
+
+#else
+
+#include "lib/lgetch.c"
+
+#endif
+
+#define VOID_SYMBOL "⠀"
+
+typedef struct
 {
     char data[TILE_HEIGHT * TILE_WIDTH];
-};
+} Tile;
 
-void renderField(char field[], int height, int width)
+typedef struct
 {
-    printf("height: %i, width: %i \n", height, width);
+    int width;
+    int height;
+    int xOffset;
+    int yOffset;
+} Camera;
+
+void renderScreen(Camera screen, char field[], int width, int height)
+{
+    // printf("height: %i, width: %i \n", height, width);
+    /*
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
@@ -22,11 +44,30 @@ void renderField(char field[], int height, int width)
         }
         printf("\n");
     }
+    */
+    for (int y = 0; y < screen.height - 1; y++)
+    {
+        if (y >= height)
+            for (int x = 0; x < screen.width; x++)
+            {
+                printf("%s", VOID_SYMBOL);
+            }
+        else
+            for (int x = 0; x < screen.width * UNICOD_COSTIL; x++)
+            {
+                if (x >= width)
+                    continue;
+                else
+                    printf("%c", field[screen.xOffset + x + (screen.yOffset + y) * width]);
+            }
+        if (y <= screen.height - 1)
+            printf("\n");
+    }
 }
 
-void catTileSHeetToTiles(TILE *tiles, char *tileSheet)
+void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
 {
-    printf("Make tiles \n");
+    // printf("Make tiles \n");
     for (int yTile = 0; yTile < FIELD_HEIGHT; yTile++)
     {
 
@@ -41,21 +82,65 @@ void catTileSHeetToTiles(TILE *tiles, char *tileSheet)
 
                     // printf("%c", tileSheet[/* x */ (xChar + xTile * TILE_WIDTH) + /* y */ (yChar + yTile * TILE_HEIGHT) * FIELD_WIDTH * TILE_WIDTH]);
                 }
-                printf("\n");
+                // printf("\n");
             }
+        }
+    }
+}
+
+void inputTileToScreen(Tile *tile, int x, int y, char *screen)
+{
+    for (int yTile = 0; yTile < TILE_HEIGHT; yTile++)
+    {
+        for (int xTile = 0; xTile < TILE_WIDTH; xTile++)
+        {
+            int yOffset = y * TILE_HEIGHT * FIELD_WIDTH * TILE_WIDTH;
+            int xOffset = x * TILE_WIDTH;
+            int index = xOffset + yOffset + xTile + yTile * FIELD_WIDTH * TILE_WIDTH;
+            screen[index] =
+                tile->data[xTile + yTile * TILE_WIDTH];
         }
     }
 }
 
 int main(int argc, char *argv[])
 {
-    char *field;
+    struct winsize w;
 
-    TILE x_Tiles[FIELD_HEIGHT * FIELD_WIDTH];
+    int fieldSize = FIELD_HEIGHT * FIELD_WIDTH * TILE_HEIGHT * TILE_WIDTH;
+    char field[fieldSize];
 
-    int fieldCharHeight = FIELD_HEIGHT * TILE_HEIGHT;
-    int fieldCharWidth = FIELD_WIDTH * TILE_WIDTH;
+    Tile emptyTiles[FIELD_HEIGHT * FIELD_WIDTH];
+    Tile xTiles[FIELD_HEIGHT * FIELD_WIDTH];
+    Tile oTiles[FIELD_HEIGHT * FIELD_WIDTH];
 
-    catTileSHeetToTiles(x_Tiles, X_TILES);
-    renderField(x_Tiles[13].data, TILE_HEIGHT, TILE_WIDTH);
+    cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
+    cutTileSHeetToTiles(oTiles, O_TILES);
+    cutTileSHeetToTiles(xTiles, X_TILES);
+
+    for (int i = 0; i < FIELD_HEIGHT * FIELD_WIDTH; i++)
+    {
+        int x = i % FIELD_WIDTH;
+        int y = i / FIELD_WIDTH;
+        // printf("%i:%i\n", x, y);
+        inputTileToScreen(&emptyTiles[i], x, y, field);
+    }
+
+    inputTileToScreen(&xTiles[1 + 1 * FIELD_WIDTH], 1, 1, field);
+    inputTileToScreen(&oTiles[0 + 2 * FIELD_WIDTH], 0, 2, field);
+
+    while (1)
+    {
+        system("clear");
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+        Camera camera;
+        camera.xOffset = 0;
+        camera.yOffset = 0;
+        camera.width = w.ws_col;
+        camera.height = w.ws_row;
+
+        renderScreen(camera, field, FIELD_WIDTH * TILE_WIDTH, FIELD_HEIGHT * TILE_HEIGHT);
+
+        getch();
+    }
 }

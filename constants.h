@@ -1,5 +1,4 @@
 
-
 #define UNICOD_COSTIL 3
 #define TILE_WIDTH (15 * UNICOD_COSTIL)
 #define TILE_HEIGHT 3

@@ -6,6 +6,7 @@
 #include "constants.h"
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include "lib/binpow.c"
 
 #ifndef __linux
 
@@ -18,6 +19,10 @@
 #endif
 
 #define VOID_SYMBOL "⠀"
+
+// #define MINIMAP_EMPTY_SYMBOL = " "
+// #define MINIMAP_O_SYMBOL = "O"
+// #define MINIMAP_X_SYMBOL = "X"
 
 typedef struct
 {
@@ -37,6 +42,13 @@ typedef struct
     int x;
     int y;
 } PointInt;
+
+enum minimapSymbols
+{
+    emptySymbol = 0,
+    oSymbol = 1,
+    xSymbol = 2
+};
 
 void renderOnScreen(Camera *camera, char field[], int width, int height)
 {
@@ -73,7 +85,7 @@ void renderOnScreen(Camera *camera, char field[], int width, int height)
 
 void render(char *field, Camera *camera, struct winsize *w)
 {
-    system("clear");
+    // system("clear");
     ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
     camera->xOffset = 0;
     camera->yOffset = 0;
@@ -133,6 +145,7 @@ void initField(Tile *defaultTiles, char *field)
 }
 
 void put();
+void findEmptyTilePoint(enum minimapSymbols *minimap, PointInt *selectedTilePoint);
 
 Tile emptyTiles[FIELD_HEIGHT * FIELD_WIDTH];
 Tile xTiles[FIELD_HEIGHT * FIELD_WIDTH];
@@ -143,23 +156,24 @@ int main(int argc, char *argv[])
 {
     struct winsize w;
 
-    int fieldSize = FIELD_HEIGHT * FIELD_WIDTH * TILE_HEIGHT * TILE_WIDTH;
-    char field[fieldSize];
-
     cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
     cutTileSHeetToTiles(oTiles, O_TILES);
     cutTileSHeetToTiles(xTiles, X_TILES);
     cutTileSHeetToTiles(chosenTile, CHOSEN_TILES);
 
+    char field[FIELD_HEIGHT * FIELD_WIDTH * TILE_HEIGHT * TILE_WIDTH];
     initField(emptyTiles, field);
+
+    enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
+    memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
+    printf("%s\n", minimap);
 
     Camera camera;
     PointInt selectedTilePoint;
-    selectedTilePoint.x = 1;
-    selectedTilePoint.y = 4;
+    selectedTilePoint.x = 0;
+    selectedTilePoint.y = 0;
 
     char command = 'q';
-
     render(field, &camera, &w);
     do
     {
@@ -169,8 +183,10 @@ int main(int argc, char *argv[])
         {
         case 'p':
         case 'P':
-            put(&selectedTilePoint, field, &camera, &w);
-
+            findEmptyTilePoint(minimap, &selectedTilePoint);
+            put(&selectedTilePoint, minimap, field, &camera, &w);
+            selectedTilePoint.x = 0;
+            selectedTilePoint.y = 0;
             break;
         case 'r':
         case 'R':
@@ -184,7 +200,7 @@ int main(int argc, char *argv[])
     system("clear");
 }
 
-void chageSelectedTile(PointInt *selectedTilePoint, char *field, int newX, int newY)
+void chageSelectedTile(PointInt *selectedTilePoint, char *field, PointInt newPoint)
 {
     inputTileToScreen(
         &emptyTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
@@ -192,8 +208,8 @@ void chageSelectedTile(PointInt *selectedTilePoint, char *field, int newX, int n
         selectedTilePoint->y,
         field);
 
-    selectedTilePoint->x = newX;
-    selectedTilePoint->y = newY;
+    selectedTilePoint->x = newPoint.x;
+    selectedTilePoint->y = newPoint.y;
 
     inputTileToScreen(
         &chosenTile[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
@@ -202,7 +218,55 @@ void chageSelectedTile(PointInt *selectedTilePoint, char *field, int newX, int n
         field);
 }
 
-void put(PointInt *selectedTilePoint, char *field, Camera *camera, struct winsize *w)
+PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *selectedTilePoint, int xDirrection, int yDirrection)
+{
+    // int xOffset = xDirrection;
+    // int yOffset = yDirrection;
+    int x = selectedTilePoint->x + xDirrection;
+    if (x >= FIELD_WIDTH)
+        x = 0;
+    else if (x < 0)
+        x = FIELD_WIDTH - 1;
+
+    int y = selectedTilePoint->y + yDirrection;
+    if (y >= FIELD_HEIGHT)
+        y = 0;
+    else if (y < 0)
+        y = FIELD_HEIGHT - 1;
+
+    while (minimap[x + y * FIELD_WIDTH] != emptySymbol)
+    {
+
+        x += xDirrection;
+        if (x >= FIELD_WIDTH)
+            x = 0;
+        else if (x < 0)
+            x = FIELD_WIDTH - 1;
+
+        y += yDirrection;
+        if (y >= FIELD_HEIGHT)
+            y = 0;
+        else if (y < 0)
+            y = FIELD_HEIGHT - 1;
+    }
+    PointInt answer;
+    answer.x = x;
+    answer.y = y;
+    return answer;
+}
+
+void findEmptyTilePoint(enum minimapSymbols *minimap, PointInt *selectedTilePoint)
+{
+    int i = 0;
+    while (minimap[i] != emptySymbol)
+    {
+        i += 1;
+    }
+    selectedTilePoint->x = i % FIELD_WIDTH;
+    selectedTilePoint->y = i / FIELD_WIDTH;
+}
+
+void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, char *field, Camera *camera, struct winsize *w)
 {
     char command = 'q';
     inputTileToScreen(
@@ -219,19 +283,23 @@ void put(PointInt *selectedTilePoint, char *field, Camera *camera, struct winsiz
         {
         case 37: // LeftArrow
         case 'a':
-            chageSelectedTile(selectedTilePoint, field, selectedTilePoint->x - 1, selectedTilePoint->y);
+            chageSelectedTile(selectedTilePoint, field,
+                              returnEmptyTilePointTowards(minimap, selectedTilePoint, -1, 0));
             break;
         case 38: // UpArrow
         case 'w':
-            chageSelectedTile(selectedTilePoint, field, selectedTilePoint->x, selectedTilePoint->y - 1);
+            chageSelectedTile(selectedTilePoint, field,
+                              returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, -1));
             break;
         case 39: // RightArrow
         case 'd':
-            chageSelectedTile(selectedTilePoint, field, selectedTilePoint->x + 1, selectedTilePoint->y);
+            chageSelectedTile(selectedTilePoint, field,
+                              returnEmptyTilePointTowards(minimap, selectedTilePoint, +1, 0));
             break;
         case 40: // DowndArrow
         case 's':
-            chageSelectedTile(selectedTilePoint, field, selectedTilePoint->x, selectedTilePoint->y + 1);
+            chageSelectedTile(selectedTilePoint, field,
+                              returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, +1));
             break;
         case 'o':
         case 'O':
@@ -240,6 +308,7 @@ void put(PointInt *selectedTilePoint, char *field, Camera *camera, struct winsiz
                 selectedTilePoint->x,
                 selectedTilePoint->y,
                 field);
+            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
             return;
         case 'x':
         case 'X':
@@ -248,6 +317,7 @@ void put(PointInt *selectedTilePoint, char *field, Camera *camera, struct winsiz
                 selectedTilePoint->x,
                 selectedTilePoint->y,
                 field);
+            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
             return;
         default:
             continue;

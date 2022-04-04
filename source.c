@@ -21,6 +21,13 @@ enum minimapSymbols
     oSymbol = 1,
     xSymbol = 2
 };
+
+Tile emptyTiles[FIELD_HEIGHT * FIELD_WIDTH];
+Tile xTiles[FIELD_HEIGHT * FIELD_WIDTH];
+Tile oTiles[FIELD_HEIGHT * FIELD_WIDTH];
+Tile chosenTile[FIELD_HEIGHT * FIELD_WIDTH];
+Tile transparencyTile;
+
 void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
 {
     // printf("Make tiles \n");
@@ -62,68 +69,45 @@ void fillScene(Tile *defaultTiles, Layer *layer)
     }
 }
 
-void put();
-void findEmptyTilePoint(enum minimapSymbols *minimap, PointInt *selectedTilePoint);
-
-Tile emptyTiles[FIELD_HEIGHT * FIELD_WIDTH];
-Tile xTiles[FIELD_HEIGHT * FIELD_WIDTH];
-Tile oTiles[FIELD_HEIGHT * FIELD_WIDTH];
-Tile chosenTile[FIELD_HEIGHT * FIELD_WIDTH];
-Tile transparencyTile;
-
-int main(int argc, char *argv[])
+void drowBox(char *arr, int width, int height)
 {
-    struct winsize w;
-
-    for (int i = 0; i < FIELD_WIDTH * FIELD_HEIGHT; i++)
+    for (int y = 0; y < height; y++)
     {
-        emptyTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
-        xTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
-        oTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
-        chosenTile[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        for (int x = 0; x < width; x++)
+        {
+            printf("%c", arr[x + y * width]);
+        }
+        if (y <= height - 2) // Не переходить на новую строку на последней линии
+            printf("\n");
+    }
+}
+
+void loadMenu(struct winsize *w)
+{
+    system("clear");
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
+    char screne[w->ws_col * w->ws_row];
+    memset(screne, ' ', w->ws_col * w->ws_row * sizeof(char));
+
+    int index = 0;
+    screne[index++] = '+';
+    memset(&(screne[index]), '-', (w->ws_col - 2) * sizeof(char));
+    index += w->ws_col - 2;
+    screne[index++] = '+';
+
+    for (int j = 0; j < w->ws_row - 2; j++)
+    {
+        screne[index++] = '|';
+        index += w->ws_col - 2;
+        screne[index++] = '|';
     }
 
-    cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
-    cutTileSHeetToTiles(oTiles, O_TILES);
-    cutTileSHeetToTiles(xTiles, X_TILES);
-    cutTileSHeetToTiles(chosenTile, CHOSEN_TILES);
-    transparencyTile = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
-    transparencyTile.data = TRANSPARENCY_TILE;
+    screne[index++] = '+';
+    memset(&(screne[index]), '-', (w->ws_col - 2) * sizeof(char));
+    index += w->ws_col - 2;
+    screne[index++] = '+';
 
-    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
-    fillScene(emptyTiles, &scene.layers[0]);
-
-    enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
-    memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
-
-    Camera camera = initCamera("3d-xo v1.0", 10, 3);
-    PointInt selectedTilePoint;
-    selectedTilePoint.x = FIELD_WIDTH / 2;
-    selectedTilePoint.y = FIELD_HEIGHT / 2;
-
-    char command = 'q';
-    render(&scene, &camera, &w);
-    do
-    {
-        command = getch();
-
-        switch (command)
-        {
-        case 'p':
-        case 'P':
-            findEmptyTilePoint(minimap, &selectedTilePoint);
-            put(&selectedTilePoint, minimap, &scene, &camera, &w);
-            break;
-        case 'r':
-        case 'R':
-            break;
-        default:
-            continue;
-        }
-
-        render(&scene, &camera, &w);
-    } while (command != 'q');
-    system("clear");
+    drowBox(screne, w->ws_col, w->ws_row);
 }
 
 void chageSelectedTile(PointInt *selectedTilePoint, Scene *scene, PointInt newPoint)
@@ -238,46 +222,38 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
             break;
         case 'o':
         case 'O':
-            inputTileToLayer(
-                &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                TILE_WIDTH * UNICOD_COSTIL,
-                TILE_HEIGHT,
-                selectedTilePoint->x,
-                selectedTilePoint->y,
-                &scene->layers[0],
-                FIELD_WIDTH);
+            if (minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] == emptySymbol)
+            {
 
-            inputTileToLayer(
-                &transparencyTile,
-                TILE_WIDTH * UNICOD_COSTIL,
-                TILE_HEIGHT,
-                selectedTilePoint->x,
-                selectedTilePoint->y,
-                &scene->layers[1],
-                FIELD_WIDTH);
-            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
-            return;
+                inputTileToLayer(
+                    &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                    TILE_WIDTH * UNICOD_COSTIL,
+                    TILE_HEIGHT,
+                    selectedTilePoint->x,
+                    selectedTilePoint->y,
+                    &scene->layers[0],
+                    FIELD_WIDTH);
+                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
+                command = 'q';
+            }
+            break;
         case 'x':
         case 'X':
-            inputTileToLayer(
-                &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                TILE_WIDTH * UNICOD_COSTIL,
-                TILE_HEIGHT,
-                selectedTilePoint->x,
-                selectedTilePoint->y,
-                &scene->layers[0],
-                FIELD_WIDTH);
+            if (minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] == emptySymbol)
+            {
+                inputTileToLayer(
+                    &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                    TILE_WIDTH * UNICOD_COSTIL,
+                    TILE_HEIGHT,
+                    selectedTilePoint->x,
+                    selectedTilePoint->y,
+                    &scene->layers[0],
+                    FIELD_WIDTH);
 
-            inputTileToLayer(
-                &transparencyTile,
-                TILE_WIDTH * UNICOD_COSTIL,
-                TILE_HEIGHT,
-                selectedTilePoint->x,
-                selectedTilePoint->y,
-                &scene->layers[1],
-                FIELD_WIDTH);
-            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
-            return;
+                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
+                command = 'q';
+            }
+            break;
         default:
             continue;
         }
@@ -292,4 +268,71 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
         selectedTilePoint->y,
         &scene->layers[1],
         FIELD_WIDTH);
+}
+
+void loadGameScene(struct winsize *w)
+{
+    for (int i = 0; i < FIELD_WIDTH * FIELD_HEIGHT; i++)
+    {
+        emptyTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        xTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        oTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        chosenTile[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+    }
+
+    cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
+    cutTileSHeetToTiles(oTiles, O_TILES);
+    cutTileSHeetToTiles(xTiles, X_TILES);
+    cutTileSHeetToTiles(chosenTile, CHOSEN_TILES);
+    transparencyTile = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+    transparencyTile.data = TRANSPARENCY_TILE;
+
+    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
+    fillScene(emptyTiles, &scene.layers[0]);
+
+    enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
+    memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
+
+    Camera camera = initCamera("3d-xo v1.0", 10, 6);
+    PointInt selectedTilePoint;
+    selectedTilePoint.x = FIELD_WIDTH / 2;
+    selectedTilePoint.y = FIELD_HEIGHT / 2;
+
+    char command = 'q';
+    render(&scene, &camera, w);
+    do
+    {
+        command = getch();
+
+        switch (command)
+        {
+        case 'p':
+        case 'P':
+            findEmptyTilePoint(minimap, &selectedTilePoint);
+            put(&selectedTilePoint, minimap, &scene, &camera, w);
+            break;
+        case 'r':
+        case 'R':
+            break;
+        default:
+            continue;
+        }
+
+        render(&scene, &camera, w);
+    } while (command != 'q');
+}
+
+int main(int argc, char *argv[])
+{
+    struct winsize w;
+
+    char command = 'q';
+    do
+    {
+        loadGameScene(&w);
+        command = getch();
+
+    } while (command != 'q');
+
+    system("clear");
 }

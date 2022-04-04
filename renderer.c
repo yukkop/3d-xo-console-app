@@ -40,7 +40,7 @@ void cameraRender(Camera *camera, int width, int height, PointInt offcet)
     }
 
     camera->xOffset = offcet.x;
-    camera->yOffset = offcet.y; // - camera->headerHeight;
+    camera->yOffset = offcet.y - camera->headerHeight;
 }
 
 PointInt ZeroPoint()
@@ -53,48 +53,73 @@ PointInt ZeroPoint()
 
 void drowOnScreen(Camera *camera, Scene *scene)
 {
+    int centeredPaddingX = abs(scene->width - camera->width) / 2;
+    int centeredPaddingY = (scene->height - camera->height) / 2;
     for (int y = 0; y < camera->height; y++)
     {
-        if (y < scene->height)
-            for (int x = 0; x < camera->width * UNICOD_COSTIL; x++)
+        if (camera->yOffset + centeredPaddingY + y < 0 || camera->yOffset + centeredPaddingY + y >= scene->height) // Если камера выходит за пределы
+        {
+            for (int x = 0; x < camera->width; x++)
             {
-                if (x >= scene->width)
+                char overlaySymbol = camera->overlay[x + y * camera->width];
+                if (overlaySymbol != ' ')
                 {
+                    printf("%c", overlaySymbol);
                     continue;
                 }
                 else
                 {
-                    char overlaySymbol = camera->overlay[(x / UNICOD_COSTIL) + y * camera->width];
-                    if (overlaySymbol != ' ')
-                    {
-                        x += 2;
-                        printf("%c", overlaySymbol);
-                        continue;
-                    }
-                    _Bool empty = true;
-                    for (int i = scene->layersCount - 1; i >= 0; i--)
-                    {
-                        char symbol = scene->layers[i].data[camera->xOffset + x + (camera->yOffset + y) * scene->width];
-                        if (symbol != VOID_SYMBOL[x % UNICOD_COSTIL])
-                        {
-                            printf("%c", symbol);
-                            empty = false;
-                            break;
-                        }
-                    }
-                    if (empty)
-                    {
-                        printf("%c", VOID_SYMBOL[x % UNICOD_COSTIL]);
-                    }
+                    printf(" ");
+                }
+                if (camera->xOffset + x < 0 || camera->xOffset + x >= scene->width * UNICOD_COSTIL)
+                {
+                    printf(" ");
                 }
             }
-        if (y <= camera->height - 2) // Не переходить на новую строку на последней линии
-            printf("\n");
+        }
+        else
+        {
+            for (int x = 0; x < camera->width * UNICOD_COSTIL; x++)
+            {
+                char overlaySymbol = camera->overlay[(x / UNICOD_COSTIL) + y * camera->width];
+                if (overlaySymbol != ' ')
+                {
+                    x += 2;
+                    printf("%c", overlaySymbol);
+                    continue;
+                }
+                if (camera->xOffset + x < 0 || camera->xOffset + x >= scene->width)
+                {
+
+                    x += 2;
+                    printf(" ");
+                    continue;
+                }
+                _Bool empty = true;
+                for (int i = scene->layersCount - 1; i >= 0; i--)
+                {
+                    char symbol = scene->layers[i].data[camera->xOffset + x + (camera->yOffset + y + centeredPaddingY) * scene->width];
+                    if (symbol != VOID_SYMBOL[x % UNICOD_COSTIL])
+                    {
+                        printf("%c", symbol);
+                        empty = false;
+                        break;
+                    }
+                }
+                if (empty)
+                {
+                    printf("%c", VOID_SYMBOL[x % UNICOD_COSTIL]);
+                }
+            }
+            if (y <= camera->height - 2) // Не переходить на новую строку на последней линии
+                printf("\n");
+        }
     }
 }
 
 void render(Scene *scene, Camera *camera, struct winsize *w)
 {
+    sleep(0.01);
     system("clear");
     ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
     cameraRender(camera, w->ws_col, w->ws_row, ZeroPoint());

@@ -4,6 +4,7 @@
 #define TILE_HEIGHT 3
 #define FIELD_HEIGHT 9
 #define FIELD_WIDTH 3
+#define VOID_SYMBOL "⠀"
 
 #define EMPTY_TILES "\
 ⠀⠀⠀⠀⠀⠀⠀⣤⠤⠤⠤⠤⠤⠤⠤⠤⠤⣤⠤⠤⠤⠤⠤⠤⠤⠤⠤⣤⠤⠤⠤⠤⠤⠤⠤⠤⠤⣤⠀⠀⠀⠀⠀⠀⠀\

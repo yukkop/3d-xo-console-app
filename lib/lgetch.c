@@ -1,6 +1,4 @@
-
 #include <unistd.h>
-
 #include <termios.h>
 
 int getch()

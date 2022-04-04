@@ -4,96 +4,14 @@
 #include <string.h>
 #include "variants/fieldfill.c"
 #include "constants.h"
-#include <sys/ioctl.h>
-#include <unistd.h>
 #include "lib/binpow.c"
+#include "renderer.c"
 
 #ifndef __linux
-
 #include <conio.h>
-
 #else
-
 #include "lib/lgetch.c"
-
 #endif
-
-#define VOID_SYMBOL "⠀"
-
-// #define MINIMAP_EMPTY_SYMBOL = " "
-// #define MINIMAP_O_SYMBOL = "O"
-// #define MINIMAP_X_SYMBOL = "X"
-
-typedef struct
-{
-    char data[TILE_HEIGHT * TILE_WIDTH];
-} Tile;
-
-typedef struct
-{
-    int width;
-    int height;
-    int xOffset;
-    int yOffset;
-} Camera;
-
-typedef struct
-{
-    int x;
-    int y;
-} PointInt;
-
-enum minimapSymbols
-{
-    emptySymbol = 0,
-    oSymbol = 1,
-    xSymbol = 2
-};
-
-void renderOnScreen(Camera *camera, char field[], int width, int height)
-{
-    // printf("height: %i, width: %i \n", height, width);
-    /*
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            printf("%c", field[x + y * width]);
-        }
-        printf("\n");
-    }
-    */
-    for (int y = 0; y < camera->height; y++)
-    {
-        if (y >= height)
-            for (int x = 0; x < camera->width; x++)
-            {
-                printf("%s", VOID_SYMBOL);
-            }
-        else
-            for (int x = 0; x < camera->width * UNICOD_COSTIL; x++)
-            {
-                if (x >= width)
-                    continue;
-                else
-                    printf("%c", field[camera->xOffset + x + (camera->yOffset + y) * width]);
-            }
-        if (y <= camera->height - 2)
-            printf("\n");
-    }
-}
-
-void render(char *field, Camera *camera, struct winsize *w)
-{
-    // system("clear");
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
-    camera->xOffset = 0;
-    camera->yOffset = 0;
-    camera->width = w->ws_col;
-    camera->height = w->ws_row;
-
-    renderOnScreen(camera, field, FIELD_WIDTH * TILE_WIDTH, FIELD_HEIGHT * TILE_HEIGHT);
-}
 
 void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
 {
@@ -283,21 +201,25 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, char *field,
         {
         case 37: // LeftArrow
         case 'a':
+        case 'A':
             chageSelectedTile(selectedTilePoint, field,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, -1, 0));
             break;
         case 38: // UpArrow
         case 'w':
+        case 'W':
             chageSelectedTile(selectedTilePoint, field,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, -1));
             break;
         case 39: // RightArrow
         case 'd':
+        case 'D':
             chageSelectedTile(selectedTilePoint, field,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, +1, 0));
             break;
         case 40: // DowndArrow
         case 's':
+        case 'S':
             chageSelectedTile(selectedTilePoint, field,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, +1));
             break;

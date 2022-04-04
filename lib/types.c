@@ -10,7 +10,12 @@ typedef struct
 
 typedef struct
 {
-    Layer *overlayLayers;
+    int headerWidth;
+    int headerHeight;
+    int headerHorisontalPadding;
+    char *headerText;
+
+    char *overlay;
     int width;
     int height;
     int xOffset;

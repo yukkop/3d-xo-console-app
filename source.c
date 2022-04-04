@@ -31,12 +31,12 @@ void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
         {
             for (int yChar = 0; yChar < TILE_HEIGHT; yChar++)
             {
-                for (int xChar = 0; xChar < TILE_WIDTH; xChar++)
+                for (int xChar = 0; xChar < TILE_WIDTH * UNICOD_COSTIL; xChar++)
                 {
-                    tiles[yTile * FIELD_WIDTH + xTile].data[yChar * TILE_WIDTH + xChar] =
-                        tileSheet[/* x */ (xChar + xTile * TILE_WIDTH) + /* y */ (yChar + yTile * TILE_HEIGHT) * FIELD_WIDTH * TILE_WIDTH];
+                    tiles[yTile * FIELD_WIDTH + xTile].data[yChar * TILE_WIDTH * UNICOD_COSTIL + xChar] =
+                        tileSheet[/* x */ (xChar + xTile * TILE_WIDTH * UNICOD_COSTIL) + /* y */ (yChar + yTile * TILE_HEIGHT) * FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL];
 
-                    // printf("%c", tileSheet[/* x */ (xChar + xTile * TILE_WIDTH) + /* y */ (yChar + yTile * TILE_HEIGHT) * FIELD_WIDTH * TILE_WIDTH]);
+                    // printf("%c", tileSheet[/* x */ (xChar + xTile * TILE_WIDTH * UNICOD_COSTIL) + /* y */ (yChar + yTile * TILE_HEIGHT) * FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL]);
                 }
                 // printf("\n");
             }
@@ -53,7 +53,7 @@ void fillScene(Tile *defaultTiles, Layer *layer)
         // printf("%i:%i\n", x, y);
         inputTileToLayer(
             &defaultTiles[i],
-            TILE_WIDTH,
+            TILE_WIDTH * UNICOD_COSTIL,
             TILE_HEIGHT,
             x,
             y,
@@ -77,27 +77,26 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < FIELD_WIDTH * FIELD_HEIGHT; i++)
     {
-        emptyTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
-        xTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
-        oTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
-        chosenTile[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
+        emptyTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        xTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        oTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
+        chosenTile[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
     }
 
     cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
     cutTileSHeetToTiles(oTiles, O_TILES);
     cutTileSHeetToTiles(xTiles, X_TILES);
     cutTileSHeetToTiles(chosenTile, CHOSEN_TILES);
-    transparencyTile = initTile(TILE_WIDTH, TILE_HEIGHT);
+    transparencyTile = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
     transparencyTile.data = TRANSPARENCY_TILE;
 
-    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH, FIELD_HEIGHT * TILE_HEIGHT, 2);
+    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
     fillScene(emptyTiles, &scene.layers[0]);
 
     enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
     memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
-    printf("%s\n", minimap);
 
-    Camera camera;
+    Camera camera = initCamera("3d-xo v1.0", 10, 3);
     PointInt selectedTilePoint;
     selectedTilePoint.x = FIELD_WIDTH / 2;
     selectedTilePoint.y = FIELD_HEIGHT / 2;
@@ -131,7 +130,7 @@ void chageSelectedTile(PointInt *selectedTilePoint, Scene *scene, PointInt newPo
 {
     inputTileToLayer(
         &transparencyTile,
-        TILE_WIDTH,
+        TILE_WIDTH * UNICOD_COSTIL,
         TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
@@ -143,7 +142,7 @@ void chageSelectedTile(PointInt *selectedTilePoint, Scene *scene, PointInt newPo
 
     inputTileToLayer(
         &chosenTile[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-        TILE_WIDTH,
+        TILE_WIDTH * UNICOD_COSTIL,
         TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
@@ -200,7 +199,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
     char command = 'q';
     inputTileToLayer(
         &chosenTile[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-        TILE_WIDTH,
+        TILE_WIDTH * UNICOD_COSTIL,
         TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
@@ -241,7 +240,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
         case 'O':
             inputTileToLayer(
                 &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                TILE_WIDTH,
+                TILE_WIDTH * UNICOD_COSTIL,
                 TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
@@ -250,7 +249,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
 
             inputTileToLayer(
                 &transparencyTile,
-                TILE_WIDTH,
+                TILE_WIDTH * UNICOD_COSTIL,
                 TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
@@ -262,7 +261,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
         case 'X':
             inputTileToLayer(
                 &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                TILE_WIDTH,
+                TILE_WIDTH * UNICOD_COSTIL,
                 TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
@@ -271,7 +270,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
 
             inputTileToLayer(
                 &transparencyTile,
-                TILE_WIDTH,
+                TILE_WIDTH * UNICOD_COSTIL,
                 TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
@@ -287,7 +286,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
 
     inputTileToLayer(
         &transparencyTile,
-        TILE_WIDTH,
+        TILE_WIDTH * UNICOD_COSTIL,
         TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,

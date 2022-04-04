@@ -70,6 +70,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "stdio.h": "c",
-        "fileldfill.h": "c"
+        "fileldfill.h": "c",
+        "*.rh": "c"
     }
 }

@@ -1,10 +1,16 @@
 typedef struct
 {
-    char data[TILE_HEIGHT * TILE_WIDTH];
+    char *data;
+} Layer;
+
+typedef struct
+{
+    char *data;
 } Tile;
 
 typedef struct
 {
+    Layer *overlayLayers;
     int width;
     int height;
     int xOffset;
@@ -13,13 +19,14 @@ typedef struct
 
 typedef struct
 {
+    Layer *layers;
+    int layersCount;
+    int width;
+    int height;
+} Scene;
+
+typedef struct
+{
     int x;
     int y;
 } PointInt;
-
-enum minimapSymbols
-{
-    emptySymbol = 0,
-    oSymbol = 1,
-    xSymbol = 2
-};

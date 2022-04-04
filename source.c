@@ -2,9 +2,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "variants/fieldfill.c"
-#include "constants.h"
+#include <stdlib.h>
 #include "lib/binpow.c"
+#include <unistd.h>
+#include "constants.h"
+#include "lib/types.c"
 #include "renderer.c"
 
 #ifndef __linux
@@ -13,6 +15,12 @@
 #include "lib/lgetch.c"
 #endif
 
+enum minimapSymbols
+{
+    emptySymbol = 0,
+    oSymbol = 1,
+    xSymbol = 2
+};
 void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
 {
     // printf("Make tiles \n");
@@ -36,29 +44,21 @@ void cutTileSHeetToTiles(Tile *tiles, char *tileSheet)
     }
 }
 
-void inputTileToScreen(Tile *tile, int x, int y, char *screen)
-{
-    for (int yTile = 0; yTile < TILE_HEIGHT; yTile++)
-    {
-        for (int xTile = 0; xTile < TILE_WIDTH; xTile++)
-        {
-            int yOffset = y * TILE_HEIGHT * FIELD_WIDTH * TILE_WIDTH;
-            int xOffset = x * TILE_WIDTH;
-            int index = xOffset + yOffset + xTile + yTile * FIELD_WIDTH * TILE_WIDTH;
-            screen[index] =
-                tile->data[xTile + yTile * TILE_WIDTH];
-        }
-    }
-}
-
-void initField(Tile *defaultTiles, char *field)
+void fillScene(Tile *defaultTiles, Layer *layer)
 {
     for (int i = 0; i < FIELD_HEIGHT * FIELD_WIDTH; i++)
     {
         int x = i % FIELD_WIDTH;
         int y = i / FIELD_WIDTH;
         // printf("%i:%i\n", x, y);
-        inputTileToScreen(&defaultTiles[i], x, y, field);
+        inputTileToLayer(
+            &defaultTiles[i],
+            TILE_WIDTH,
+            TILE_HEIGHT,
+            x,
+            y,
+            layer,
+            FIELD_WIDTH);
     }
 }
 
@@ -69,18 +69,29 @@ Tile emptyTiles[FIELD_HEIGHT * FIELD_WIDTH];
 Tile xTiles[FIELD_HEIGHT * FIELD_WIDTH];
 Tile oTiles[FIELD_HEIGHT * FIELD_WIDTH];
 Tile chosenTile[FIELD_HEIGHT * FIELD_WIDTH];
+Tile transparencyTile;
 
 int main(int argc, char *argv[])
 {
     struct winsize w;
 
+    for (int i = 0; i < FIELD_WIDTH * FIELD_HEIGHT; i++)
+    {
+        emptyTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
+        xTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
+        oTiles[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
+        chosenTile[i] = initTile(TILE_WIDTH, TILE_HEIGHT);
+    }
+
     cutTileSHeetToTiles(emptyTiles, EMPTY_TILES);
     cutTileSHeetToTiles(oTiles, O_TILES);
     cutTileSHeetToTiles(xTiles, X_TILES);
     cutTileSHeetToTiles(chosenTile, CHOSEN_TILES);
+    transparencyTile = initTile(TILE_WIDTH, TILE_HEIGHT);
+    transparencyTile.data = TRANSPARENCY_TILE;
 
-    char field[FIELD_HEIGHT * FIELD_WIDTH * TILE_HEIGHT * TILE_WIDTH];
-    initField(emptyTiles, field);
+    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH, FIELD_HEIGHT * TILE_HEIGHT, 2);
+    fillScene(emptyTiles, &scene.layers[0]);
 
     enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
     memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
@@ -92,7 +103,7 @@ int main(int argc, char *argv[])
     selectedTilePoint.y = 0;
 
     char command = 'q';
-    render(field, &camera, &w);
+    render(&scene, &camera, &w);
     do
     {
         command = getch();
@@ -102,7 +113,7 @@ int main(int argc, char *argv[])
         case 'p':
         case 'P':
             findEmptyTilePoint(minimap, &selectedTilePoint);
-            put(&selectedTilePoint, minimap, field, &camera, &w);
+            put(&selectedTilePoint, minimap, &scene, &camera, &w);
             selectedTilePoint.x = 0;
             selectedTilePoint.y = 0;
             break;
@@ -113,27 +124,33 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        render(field, &camera, &w);
+        render(&scene, &camera, &w);
     } while (command != 'q');
     system("clear");
 }
 
-void chageSelectedTile(PointInt *selectedTilePoint, char *field, PointInt newPoint)
+void chageSelectedTile(PointInt *selectedTilePoint, Scene *scene, PointInt newPoint)
 {
-    inputTileToScreen(
-        &emptyTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+    inputTileToLayer(
+        &transparencyTile,
+        TILE_WIDTH,
+        TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
-        field);
+        &scene->layers[1],
+        FIELD_WIDTH);
 
     selectedTilePoint->x = newPoint.x;
     selectedTilePoint->y = newPoint.y;
 
-    inputTileToScreen(
+    inputTileToLayer(
         &chosenTile[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+        TILE_WIDTH,
+        TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
-        field);
+        &scene->layers[1],
+        FIELD_WIDTH);
 }
 
 PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *selectedTilePoint, int xDirrection, int yDirrection)
@@ -151,7 +168,7 @@ PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *sel
         y = 0;
     else if (y < 0)
         y = FIELD_HEIGHT - 1;
-
+    /*
     while (minimap[x + y * FIELD_WIDTH] != emptySymbol)
     {
 
@@ -167,6 +184,7 @@ PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *sel
         else if (y < 0)
             y = FIELD_HEIGHT - 1;
     }
+    */
     PointInt answer;
     answer.x = x;
     answer.y = y;
@@ -184,16 +202,19 @@ void findEmptyTilePoint(enum minimapSymbols *minimap, PointInt *selectedTilePoin
     selectedTilePoint->y = i / FIELD_WIDTH;
 }
 
-void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, char *field, Camera *camera, struct winsize *w)
+void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene, Camera *camera, struct winsize *w)
 {
     char command = 'q';
-    inputTileToScreen(
+    inputTileToLayer(
         &chosenTile[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+        TILE_WIDTH,
+        TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
-        field);
+        &scene->layers[1],
+        FIELD_WIDTH);
 
-    render(field, camera, w);
+    render(scene, camera, w);
     do
     {
         command = getch();
@@ -202,54 +223,81 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, char *field,
         case 37: // LeftArrow
         case 'a':
         case 'A':
-            chageSelectedTile(selectedTilePoint, field,
+            chageSelectedTile(selectedTilePoint, scene,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, -1, 0));
             break;
         case 38: // UpArrow
         case 'w':
         case 'W':
-            chageSelectedTile(selectedTilePoint, field,
+            chageSelectedTile(selectedTilePoint, scene,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, -1));
             break;
         case 39: // RightArrow
         case 'd':
         case 'D':
-            chageSelectedTile(selectedTilePoint, field,
+            chageSelectedTile(selectedTilePoint, scene,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, +1, 0));
             break;
         case 40: // DowndArrow
         case 's':
         case 'S':
-            chageSelectedTile(selectedTilePoint, field,
+            chageSelectedTile(selectedTilePoint, scene,
                               returnEmptyTilePointTowards(minimap, selectedTilePoint, 0, +1));
             break;
         case 'o':
         case 'O':
-            inputTileToScreen(
+            inputTileToLayer(
                 &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                TILE_WIDTH,
+                TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
-                field);
+                &scene->layers[0],
+                FIELD_WIDTH);
+
+            inputTileToLayer(
+                &transparencyTile,
+                TILE_WIDTH,
+                TILE_HEIGHT,
+                selectedTilePoint->x,
+                selectedTilePoint->y,
+                &scene->layers[1],
+                FIELD_WIDTH);
             minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
             return;
         case 'x':
         case 'X':
-            inputTileToScreen(
+            inputTileToLayer(
                 &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                TILE_WIDTH,
+                TILE_HEIGHT,
                 selectedTilePoint->x,
                 selectedTilePoint->y,
-                field);
+                &scene->layers[0],
+                FIELD_WIDTH);
+
+            inputTileToLayer(
+                &transparencyTile,
+                TILE_WIDTH,
+                TILE_HEIGHT,
+                selectedTilePoint->x,
+                selectedTilePoint->y,
+                &scene->layers[1],
+                FIELD_WIDTH);
             minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
             return;
         default:
             continue;
         }
-        render(field, camera, w);
+        render(scene, camera, w);
     } while (command != 'q');
 
-    inputTileToScreen(
-        &emptyTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+    inputTileToLayer(
+        &transparencyTile,
+        TILE_WIDTH,
+        TILE_HEIGHT,
         selectedTilePoint->x,
         selectedTilePoint->y,
-        field);
+        &scene->layers[1],
+        FIELD_WIDTH);
 }

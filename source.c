@@ -99,8 +99,8 @@ int main(int argc, char *argv[])
 
     Camera camera;
     PointInt selectedTilePoint;
-    selectedTilePoint.x = 0;
-    selectedTilePoint.y = 0;
+    selectedTilePoint.x = FIELD_WIDTH / 2;
+    selectedTilePoint.y = FIELD_HEIGHT / 2;
 
     char command = 'q';
     render(&scene, &camera, &w);
@@ -114,8 +114,6 @@ int main(int argc, char *argv[])
         case 'P':
             findEmptyTilePoint(minimap, &selectedTilePoint);
             put(&selectedTilePoint, minimap, &scene, &camera, &w);
-            selectedTilePoint.x = 0;
-            selectedTilePoint.y = 0;
             break;
         case 'r':
         case 'R':
@@ -168,23 +166,6 @@ PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *sel
         y = 0;
     else if (y < 0)
         y = FIELD_HEIGHT - 1;
-    /*
-    while (minimap[x + y * FIELD_WIDTH] != emptySymbol)
-    {
-
-        x += xDirrection;
-        if (x >= FIELD_WIDTH)
-            x = 0;
-        else if (x < 0)
-            x = FIELD_WIDTH - 1;
-
-        y += yDirrection;
-        if (y >= FIELD_HEIGHT)
-            y = 0;
-        else if (y < 0)
-            y = FIELD_HEIGHT - 1;
-    }
-    */
     PointInt answer;
     answer.x = x;
     answer.y = y;
@@ -193,13 +174,25 @@ PointInt returnEmptyTilePointTowards(enum minimapSymbols *minimap, PointInt *sel
 
 void findEmptyTilePoint(enum minimapSymbols *minimap, PointInt *selectedTilePoint)
 {
-    int i = 0;
-    while (minimap[i] != emptySymbol)
+    int lengs = FIELD_WIDTH * FIELD_HEIGHT;
+    for (int i = lengs / 2; i < lengs; i++)
     {
-        i += 1;
+        if (minimap[i] == emptySymbol)
+        {
+            selectedTilePoint->x = i % FIELD_WIDTH;
+            selectedTilePoint->y = i / FIELD_WIDTH;
+            // printf("%i, %i", selectedTilePoint->x, selectedTilePoint->y);
+            return;
+        }
+        else if (minimap[lengs / 2 - (i - lengs / 2)] == emptySymbol)
+        {
+            selectedTilePoint->x = (lengs / 2 - (i - lengs / 2)) % FIELD_WIDTH;
+            selectedTilePoint->y = (lengs / 2 - (i - lengs / 2)) / FIELD_WIDTH;
+            return;
+        }
     }
-    selectedTilePoint->x = i % FIELD_WIDTH;
-    selectedTilePoint->y = i / FIELD_WIDTH;
+    selectedTilePoint->x = FIELD_WIDTH / 2;
+    selectedTilePoint->y = FIELD_HEIGHT / 2;
 }
 
 void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene, Camera *camera, struct winsize *w)

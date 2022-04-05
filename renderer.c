@@ -8,16 +8,37 @@ Tile initTile(int width, int height)
     return tile;
 }
 
-Camera initCamera(char *headerText, int headerWidth, int headerhorisontalPadding)
+Camera initCamera(char *headerText, int lengs, int headerhorisontalPadding)
 {
     Camera camera;
     camera.headerText = headerText;
-    camera.headerWidth = headerWidth;
+    camera.headerWidth = lengs;
     camera.headerHorisontalPadding = headerhorisontalPadding;
+    camera.xOffset = 0;
+    camera.yOffset = 0;
     return camera;
 }
 
-void cameraRender(Camera *camera, int width, int height, PointInt offcet)
+void setCameraHeaderText(Camera *camera, char *text, int lengs)
+{
+    camera->headerText = text;
+    camera->headerWidth = lengs;
+}
+
+void setCameraOffset(Camera *camera, int xDirrection, int yDirrection)
+{
+    camera->xOffset += xDirrection;
+    camera->yOffset += yDirrection;
+
+    /*
+        char *value = (char *)malloc(11 * sizeof(char));
+        memset(value, ' ', 11 * sizeof(char));
+        snprintf(value, 11 * sizeof(char), "X:%i, Y:%i;", camera->xOffset, camera->yOffset);
+        setCameraHeaderText(camera, value, 11);
+    */
+}
+
+void cameraRender(Camera *camera, int width, int height)
 {
     camera->overlay = (char *)malloc(width * height * sizeof(char));
     memset(camera->overlay, ' ', width * height * sizeof(char));
@@ -38,9 +59,6 @@ void cameraRender(Camera *camera, int width, int height, PointInt offcet)
             camera->overlay[x + camera->headerHorisontalPadding + y * camera->width] = camera->headerText[x + y * headerLineWidth];
         }
     }
-
-    camera->xOffset = offcet.x;
-    camera->yOffset = offcet.y - camera->headerHeight;
 }
 
 PointInt ZeroPoint()
@@ -53,7 +71,7 @@ PointInt ZeroPoint()
 
 void drowOnScreen(Camera *camera, Scene *scene)
 {
-    int centeredPaddingX = abs(scene->width - camera->width) / 2;
+    int centeredPaddingX = (scene->width / UNICOD_COSTIL - camera->width) / 2;
     int centeredPaddingY = (scene->height - camera->height) / 2;
     for (int y = 0; y < camera->height; y++)
     {
@@ -71,10 +89,6 @@ void drowOnScreen(Camera *camera, Scene *scene)
                 {
                     printf(" ");
                 }
-                if (camera->xOffset + x < 0 || camera->xOffset + x >= scene->width * UNICOD_COSTIL)
-                {
-                    printf(" ");
-                }
             }
         }
         else
@@ -88,7 +102,7 @@ void drowOnScreen(Camera *camera, Scene *scene)
                     printf("%c", overlaySymbol);
                     continue;
                 }
-                if (camera->xOffset + x < 0 || camera->xOffset + x >= scene->width)
+                if (camera->xOffset * UNICOD_COSTIL + centeredPaddingX * UNICOD_COSTIL + x < 0 || camera->xOffset * UNICOD_COSTIL + centeredPaddingX * UNICOD_COSTIL + x >= scene->width)
                 {
 
                     x += 2;
@@ -98,7 +112,7 @@ void drowOnScreen(Camera *camera, Scene *scene)
                 _Bool empty = true;
                 for (int i = scene->layersCount - 1; i >= 0; i--)
                 {
-                    char symbol = scene->layers[i].data[camera->xOffset + x + (camera->yOffset + y + centeredPaddingY) * scene->width];
+                    char symbol = scene->layers[i].data[camera->xOffset * UNICOD_COSTIL + x + centeredPaddingX * UNICOD_COSTIL + (camera->yOffset + y + centeredPaddingY) * scene->width];
                     if (symbol != VOID_SYMBOL[x % UNICOD_COSTIL])
                     {
                         printf("%c", symbol);
@@ -122,7 +136,7 @@ void render(Scene *scene, Camera *camera, struct winsize *w)
     sleep(0.01);
     system("clear");
     ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
-    cameraRender(camera, w->ws_col, w->ws_row, ZeroPoint());
+    cameraRender(camera, w->ws_col, w->ws_row);
     drowOnScreen(camera, scene);
 }
 

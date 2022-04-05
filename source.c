@@ -257,6 +257,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
         default:
             continue;
         }
+        setCameraHeaderText(camera, "#3d-xo v1.0# [q - back] [o - put o] [x - put x] [w,a,s,d - mark movement]", 73);
         render(scene, camera, w);
     } while (command != 'q');
 
@@ -293,12 +294,13 @@ void loadGameScene(struct winsize *w)
     enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
     memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
 
-    Camera camera = initCamera("3d-xo v1.0", 10, 6);
+    Camera camera = initCamera("", 0, 3);
     PointInt selectedTilePoint;
     selectedTilePoint.x = FIELD_WIDTH / 2;
     selectedTilePoint.y = FIELD_HEIGHT / 2;
 
     char command = 'q';
+    setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
     render(&scene, &camera, w);
     do
     {
@@ -308,8 +310,25 @@ void loadGameScene(struct winsize *w)
         {
         case 'p':
         case 'P':
+            setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [o - put o] [x - put x] [w,a,s,d - mark movement]", 73);
             findEmptyTilePoint(minimap, &selectedTilePoint);
             put(&selectedTilePoint, minimap, &scene, &camera, w);
+            break;
+        case 'w':
+        case 'W':
+            setCameraOffset(&camera, 0, -1);
+            break;
+        case 'a':
+        case 'A':
+            setCameraOffset(&camera, -1, 0);
+            break;
+        case 's':
+        case 'S':
+            setCameraOffset(&camera, 0, +1);
+            break;
+        case 'd':
+        case 'D':
+            setCameraOffset(&camera, +1, 0);
             break;
         case 'r':
         case 'R':
@@ -318,6 +337,7 @@ void loadGameScene(struct winsize *w)
             continue;
         }
 
+        setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
         render(&scene, &camera, w);
     } while (command != 'q');
 }

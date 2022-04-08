@@ -15,11 +15,19 @@ typedef struct
     int headerHorisontalPadding;
     char *headerText;
 
+    _Bool isPopup;
+    char *popupText;
+    int popupTextWidth;
+    int popupTextHeight;
+
     char *overlay;
+
     int width;
     int height;
     int xOffset;
     int yOffset;
+
+    _Bool needRerender;
 } Camera;
 
 typedef struct

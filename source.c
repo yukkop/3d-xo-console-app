@@ -82,34 +82,6 @@ void drowBox(char *arr, int width, int height)
     }
 }
 
-void loadMenu(struct winsize *w)
-{
-    system("clear");
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
-    char screne[w->ws_col * w->ws_row];
-    memset(screne, ' ', w->ws_col * w->ws_row * sizeof(char));
-
-    int index = 0;
-    screne[index++] = '+';
-    memset(&(screne[index]), '-', (w->ws_col - 2) * sizeof(char));
-    index += w->ws_col - 2;
-    screne[index++] = '+';
-
-    for (int j = 0; j < w->ws_row - 2; j++)
-    {
-        screne[index++] = '|';
-        index += w->ws_col - 2;
-        screne[index++] = '|';
-    }
-
-    screne[index++] = '+';
-    memset(&(screne[index]), '-', (w->ws_col - 2) * sizeof(char));
-    index += w->ws_col - 2;
-    screne[index++] = '+';
-
-    drowBox(screne, w->ws_col, w->ws_row);
-}
-
 void chageSelectedTile(PointInt *selectedTilePoint, Scene *scene, PointInt newPoint)
 {
     inputTileToLayer(
@@ -194,6 +166,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
     do
     {
         command = getch();
+        disableCameraPopup(camera);
         switch (command)
         {
         case 37: // LeftArrow
@@ -236,6 +209,11 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
                 minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
                 command = 'q';
             }
+            else
+            {
+                setCameraPopupText(camera, "this place already busy", 23);
+                enableCameraPopup(camera);
+            }
             break;
         case 'x':
         case 'X':
@@ -252,6 +230,11 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
 
                 minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
                 command = 'q';
+            }
+            else
+            {
+                setCameraPopupText(camera, "this place already busy", 23);
+                enableCameraPopup(camera);
             }
             break;
         default:
@@ -271,8 +254,10 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
         FIELD_WIDTH);
 }
 
-void loadGameScene(struct winsize *w)
+void loadGameScene(Camera *camera, Scene *scene, struct winsize *w)
 {
+    disableCameraPopup(camera);
+
     for (int i = 0; i < FIELD_WIDTH * FIELD_HEIGHT; i++)
     {
         emptyTiles[i] = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
@@ -288,20 +273,19 @@ void loadGameScene(struct winsize *w)
     transparencyTile = initTile(TILE_WIDTH * UNICOD_COSTIL, TILE_HEIGHT);
     transparencyTile.data = TRANSPARENCY_TILE;
 
-    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
-    fillScene(emptyTiles, &scene.layers[0]);
+    fillScene(emptyTiles, &scene->layers[0]);
 
     enum minimapSymbols minimap[FIELD_HEIGHT * FIELD_WIDTH];
     memset(minimap, emptySymbol, sizeof(enum minimapSymbols) * FIELD_HEIGHT * FIELD_WIDTH);
 
-    Camera camera = initCamera("", 0, 3);
     PointInt selectedTilePoint;
     selectedTilePoint.x = FIELD_WIDTH / 2;
     selectedTilePoint.y = FIELD_HEIGHT / 2;
 
     char command = 'q';
-    setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
-    render(&scene, &camera, w);
+    setCameraHeaderText(camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
+
+    render(scene, camera, w);
     do
     {
         command = getch();
@@ -310,25 +294,25 @@ void loadGameScene(struct winsize *w)
         {
         case 'p':
         case 'P':
-            setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [o - put o] [x - put x] [w,a,s,d - mark movement]", 73);
+            setCameraHeaderText(camera, "#3d-xo v1.0# [q - back] [o - put o] [x - put x] [w,a,s,d - mark movement]", 73);
             findEmptyTilePoint(minimap, &selectedTilePoint);
-            put(&selectedTilePoint, minimap, &scene, &camera, w);
+            put(&selectedTilePoint, minimap, scene, camera, w);
             break;
         case 'w':
         case 'W':
-            setCameraOffset(&camera, 0, -1);
+            setCameraOffset(camera, 0, -1);
             break;
         case 'a':
         case 'A':
-            setCameraOffset(&camera, -1, 0);
+            setCameraOffset(camera, -1, 0);
             break;
         case 's':
         case 'S':
-            setCameraOffset(&camera, 0, +1);
+            setCameraOffset(camera, 0, +1);
             break;
         case 'd':
         case 'D':
-            setCameraOffset(&camera, +1, 0);
+            setCameraOffset(camera, +1, 0);
             break;
         case 'r':
         case 'R':
@@ -337,8 +321,32 @@ void loadGameScene(struct winsize *w)
             continue;
         }
 
-        setCameraHeaderText(&camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
-        render(&scene, &camera, w);
+        setCameraHeaderText(camera, "#3d-xo v1.0# [q - back] [p - put] [w,a,s,d - camera movement]", 61);
+        render(scene, camera, w);
+    } while (command != 'q');
+}
+
+void loadMenu(Camera *camera, Scene *scene, struct winsize *w)
+{
+    setCameraPopupText(camera, "[S - singlplayer]", 17);
+    enableCameraPopup(camera);
+
+    render(scene, camera, w);
+
+    char command = 'q';
+    do
+    {
+        command = getch();
+
+        switch (command)
+        {
+        case 's':
+        case 'S':
+            loadGameScene(camera, scene, w);
+            break;
+        default:
+            continue;
+        }
     } while (command != 'q');
 }
 
@@ -346,13 +354,12 @@ int main(int argc, char *argv[])
 {
     struct winsize w;
 
-    char command = 'q';
-    do
-    {
-        loadGameScene(&w);
-        command = getch();
+    Camera camera = initCamera("", 0, 3);
+    setCameraHeaderText(&camera, "#3d-xo v1.0#", 12);
 
-    } while (command != 'q');
+    Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
+
+    loadMenu(&camera, &scene, &w);
 
     system("clear");
 }

@@ -4,16 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include "lib/binpow.c"
-#include <unistd.h>
 #include "constants.h"
 #include "lib/types.c"
 #include "renderer.c"
-
-#ifndef __linux
-#include <conio.h>
-#else
-#include "lib/lgetch.c"
-#endif
+#include "lib/getch.c"
 
 enum minimapSymbols
 {

@@ -1,3 +1,7 @@
+
+#ifndef __linux
+#include <conio.h>
+#else
 #include <termios.h>
 
 int getch()
@@ -22,3 +26,4 @@ int getch()
 
     return ch;
 }
+#endif

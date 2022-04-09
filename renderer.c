@@ -1,7 +1,20 @@
-#include <sys/ioctl.h>
+#include <unistd.h>
+
+#ifndef __linux
+struct winsize
+{
+    int ws_col;
+    int ws_row;
+}
+#include "lib/wconsolesize.c"
+#else
+#include <unistd.h>
+#include "lib/lconsolesize.c"
+#endif
 #include <math.h>
 
-Tile initTile(int width, int height)
+Tile
+initTile(int width, int height)
 {
     Tile tile;
     tile.data = (char *)malloc(width * height * sizeof(char));
@@ -271,7 +284,7 @@ void render(Scene *scene, Camera *camera, struct winsize *w)
 {
     sleep(0.01);
     system("clear");
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, w);
+    getConsoleSize(w);
     cameraRender(camera, w->ws_col, w->ws_row);
     drowOnScreen(camera, scene);
 }

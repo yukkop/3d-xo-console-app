@@ -75,9 +75,9 @@ void cameraRender(Camera *camera, int width, int height)
         // Шапка
 
         int headerLineWidth = camera->width - camera->headerHorisontalPadding * 2;
-        camera->headerHeight = ceil(camera->headerWidth / headerLineWidth);
-        if (camera->headerHeight == 0)
-            camera->headerHeight = 1;
+        camera->headerHeight = camera->headerWidth / headerLineWidth;
+        if (camera->headerWidth % headerLineWidth != 0)
+            camera->headerHeight += 1;
 
         for (int y = 0; y < camera->headerHeight; y++)
         {
@@ -85,7 +85,11 @@ void cameraRender(Camera *camera, int width, int height)
             {
                 if (x + y * headerLineWidth > camera->headerWidth - 1)
                     break;
-                camera->overlay[x + camera->headerHorisontalPadding + y * camera->width] = camera->headerText[x + y * headerLineWidth];
+
+                if (camera->headerText[x + y * headerLineWidth] == ' ')
+                    camera->overlay[x + camera->headerHorisontalPadding + y * camera->width] = SPEC_SMBOL_OVERLAY_VOID;
+                else
+                    camera->overlay[x + camera->headerHorisontalPadding + y * camera->width] = camera->headerText[x + y * headerLineWidth];
             }
         }
 
@@ -201,6 +205,11 @@ void drowOnScreen(Camera *camera, Scene *scene)
                 char overlaySymbol = camera->overlay[x + y * camera->width];
                 if (overlaySymbol != ' ')
                 {
+                    if (overlaySymbol == SPEC_SMBOL_OVERLAY_VOID)
+                    {
+                        printf(" ");
+                        continue;
+                    }
                     printf("%c", overlaySymbol);
                     continue;
                 }

@@ -328,6 +328,8 @@ void loadGameScene(Camera *camera, Scene *scene, struct winsize *w)
 
 void loadMenu(Camera *camera, Scene *scene, struct winsize *w)
 {
+
+    setCameraHeaderText(camera, "#3d-xo v1.0# Menu", 17);
     setCameraPopupText(camera, "[S - singlplayer]", 17);
     enableCameraPopup(camera);
 
@@ -347,6 +349,12 @@ void loadMenu(Camera *camera, Scene *scene, struct winsize *w)
         default:
             continue;
         }
+
+        setCameraHeaderText(camera, "#3d-xo v1.0# Menu", 17);
+        setCameraPopupText(camera, "[S - singlplayer]", 17);
+        enableCameraPopup(camera);
+
+        render(scene, camera, w);
     } while (command != 'q');
 }
 
@@ -355,7 +363,6 @@ int main(int argc, char *argv[])
     struct winsize w;
 
     Camera camera = initCamera("", 0, 3);
-    setCameraHeaderText(&camera, "#3d-xo v1.0#", 12);
 
     Scene scene = initScene(FIELD_WIDTH * TILE_WIDTH * UNICOD_COSTIL, FIELD_HEIGHT * TILE_HEIGHT, 2);
 

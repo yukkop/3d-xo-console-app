@@ -93,45 +93,76 @@ void cameraRender(Camera *camera, int width, int height)
 
         if (camera->isPopup == true)
         {
+            int popupHorisontalPadding = 2; // отступы текста от границ
 
             int persent = 60; // Процент от экрана (максимальная ширина попапа)
-            int maxPopupWidth = camera->width / 100 * 60;
-            camera->popupTextHeight = ceil(camera->popupTextWidth / maxPopupWidth);
-            if (camera->popupTextHeight == 0)
-                camera->popupTextHeight = 1;
+            int maxPopupWidth = camera->width / 100. * 60;
+            int popupTextHeight = camera->popupTextWidth * 1. / maxPopupWidth;
+            if (camera->popupTextWidth % maxPopupWidth != 0)
+                popupTextHeight += 1;
 
-            int popupHorisontalPadding = 2; // отступы текста от границ
+            int popupHeight = popupTextHeight + 2; // 2 из за рамок с двух сторон
+            int popupWidth = 0;
+            if (popupTextHeight > 1)
+                popupWidth = maxPopupWidth + popupHorisontalPadding * 2;
+            else
+                popupWidth = camera->popupTextWidth + popupHorisontalPadding * 2;
+
             // Создаем попап
-            int popupHeight = camera->popupTextHeight + 2; // 2 из за рамок с двух сторон
-            int popupWidth = camera->popupTextWidth + 2 + popupHorisontalPadding * 2;
+            char *popupText = (char *)malloc(camera->popupTextWidth * sizeof(char));
+            for (int i = 0; i < camera->popupTextWidth; i++)
+            {
+                if (camera->popupText[i] == ' ')
+                {
+                    popupText[i] = SPEC_SMBOL_OVERLAY_VOID;
+                }
+                else
+                {
+                    popupText[i] = camera->popupText[i];
+                }
+            }
+
             char *popup = (char *)malloc(popupHeight * popupWidth * sizeof(char));
-            memset(popup, '\'', popupHeight * popupWidth * sizeof(char));
+            memset(popup, SPEC_SMBOL_OVERLAY_VOID, popupHeight * popupWidth * sizeof(char));
 
             int index = 0;
             popup[index++] = '+';
             memset(&(popup[index]), '-', (popupWidth - 2) * sizeof(char)); // заполняем строку '-'; -2 из-за '+' по углам
             index += popupWidth - 2;                                       // ставим индекс за memset
             popup[index++] = '+';
-            for (int y = 0; y < camera->popupTextHeight; y++)
+
+            for (int y = 0; y < popupTextHeight; y++)
             {
                 int x = 0;
                 popup[x + (y + 1) * popupWidth] = '|';
-                x += popupHorisontalPadding + 1;
-                for (x; x < camera->popupTextWidth + popupHorisontalPadding + 1; x++)
-                {
-                    popup[x + (y + 1) * popupWidth] = camera->popupText[x - popupHorisontalPadding - 1 + y * camera->popupTextWidth];
-                }
                 x += popupHorisontalPadding;
+                for (x; x < popupWidth - popupHorisontalPadding; x++)
+                {
+                    int index = x - popupHorisontalPadding + y * maxPopupWidth;
+                    if (index >= camera->popupTextWidth)
+                    {
+                        x = maxPopupWidth + popupHorisontalPadding;
+                        break;
+                    }
+                    if (camera->popupText[index] == ' ')
+                        popup[x + (y + 1) * popupWidth] = '_';
+
+                    else
+                        popup[x + (y + 1) * popupWidth] = camera->popupText[index];
+                }
+                x += popupHorisontalPadding - 1;
                 popup[x + (y + 1) * popupWidth] = '|';
 
                 index += x + 1;
             }
+
             popup[index++] = '+';
             memset(&(popup[index]), '-', (popupWidth - 2) * sizeof(char)); // заполняем строку '-'; -2 из-за '+' по углам
             index += popupWidth - 2;                                       // ставим индекс за memset
             popup[index++] = '+';
 
-            // Загружаем попап в оверлей
+            // drowBox(popup, popupWidth, popupHeight);
+            //  Загружаем попап в оверлей
 
             int freeSpaceHeight = camera->height - camera->headerHeight;
 
@@ -187,6 +218,13 @@ void drowOnScreen(Camera *camera, Scene *scene)
                 if (overlaySymbol != ' ')
                 {
                     x += 2;
+
+                    if (overlaySymbol == SPEC_SMBOL_OVERLAY_VOID)
+                    {
+                        printf(" ");
+                        continue;
+                    }
+
                     printf("%c", overlaySymbol);
                     continue;
                 }
@@ -213,9 +251,10 @@ void drowOnScreen(Camera *camera, Scene *scene)
                     printf("%c", VOID_SYMBOL[x % UNICOD_COSTIL]);
                 }
             }
-            if (y <= camera->height - 2) // Не переходить на новую строку на последней линии
-                printf("\n");
         }
+
+        if (y <= camera->height - 2) // Не переходить на новую строку на последней линии
+            printf("\n");
     }
 }
 

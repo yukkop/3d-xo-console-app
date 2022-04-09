@@ -18,7 +18,6 @@ typedef struct
     _Bool isPopup;
     char *popupText;
     int popupTextWidth;
-    int popupTextHeight;
 
     char *overlay;
 

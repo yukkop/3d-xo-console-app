@@ -153,47 +153,31 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
             break;
         case 'o':
         case 'O':
-            if (minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] == emptySymbol)
-            {
 
-                inputTileToLayer(
-                    &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                    TILE_WIDTH * UNICOD_COSTIL,
-                    TILE_HEIGHT,
-                    selectedTilePoint->x,
-                    selectedTilePoint->y,
-                    &scene->layers[0],
-                    FIELD_WIDTH);
-                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
-                command = 'q';
-            }
-            else
-            {
-                setCameraPopupText(camera, "this place already busy", 23);
-                enableCameraPopup(camera);
-            }
+            inputTileToLayer(
+                &oTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                TILE_WIDTH * UNICOD_COSTIL,
+                TILE_HEIGHT,
+                selectedTilePoint->x,
+                selectedTilePoint->y,
+                &scene->layers[0],
+                FIELD_WIDTH);
+            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = oSymbol;
+            command = 'q';
             break;
         case 'x':
         case 'X':
-            if (minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] == emptySymbol)
-            {
-                inputTileToLayer(
-                    &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
-                    TILE_WIDTH * UNICOD_COSTIL,
-                    TILE_HEIGHT,
-                    selectedTilePoint->x,
-                    selectedTilePoint->y,
-                    &scene->layers[0],
-                    FIELD_WIDTH);
+            inputTileToLayer(
+                &xTiles[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH],
+                TILE_WIDTH * UNICOD_COSTIL,
+                TILE_HEIGHT,
+                selectedTilePoint->x,
+                selectedTilePoint->y,
+                &scene->layers[0],
+                FIELD_WIDTH);
 
-                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
-                command = 'q';
-            }
-            else
-            {
-                setCameraPopupText(camera, "this place already busy", 23);
-                enableCameraPopup(camera);
-            }
+            minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
+            command = 'q';
             break;
         case 'c':
         case 'C':
@@ -208,7 +192,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
                     &scene->layers[0],
                     FIELD_WIDTH);
 
-                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = xSymbol;
+                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = emptySymbol;
             }
             command = 'q';
             break;

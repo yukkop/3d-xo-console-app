@@ -192,7 +192,7 @@ void put(PointInt *selectedTilePoint, enum minimapSymbols *minimap, Scene *scene
                     &scene->layers[0],
                     FIELD_WIDTH);
 
-                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = emptySymbol;
+                minimap[selectedTilePoint->x + selectedTilePoint->y * FIELD_WIDTH] = emptySymbol    ;
             }
             command = 'q';
             break;
